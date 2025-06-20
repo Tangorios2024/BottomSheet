@@ -24,6 +24,8 @@ protocol ActionSheetConfigurable {
     var velocityThreshold: CGFloat { get }
     var extendToSafeArea: Bool { get }
     var safeAreaBackgroundColor: UIColor? { get }
+    var sourceViewConfiguration: SourceViewConfigurable? { get }
+    var dismissalViewConfiguration: DismissalViewConfigurable { get }
 }
 
 // MARK: - Gesture Handling Protocol

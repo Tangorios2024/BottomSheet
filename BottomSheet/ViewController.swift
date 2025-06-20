@@ -62,7 +62,25 @@ class ViewController: UIViewController {
         return button
     }()
 
+    private lazy var feedbackButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Show Feedback Demo", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        button.backgroundColor = UIColor.systemOrange
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 12
+        button.addTarget(self, action: #selector(showFeedbackDemo), for: .touchUpInside)
+        return button
+    }()
 
+
+
+    // MARK: - Feedback Manager
+    private lazy var feedbackManager: FeedbackManager = {
+        let manager = FeedbackManager()
+        manager.delegate = self
+        return manager
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -83,6 +101,7 @@ private extension ViewController {
         stackView.addArrangedSubview(defaultButton)
         stackView.addArrangedSubview(compactButton)
         stackView.addArrangedSubview(customButton)
+        stackView.addArrangedSubview(feedbackButton)
     }
 
     func setupConstraints() {
@@ -97,7 +116,8 @@ private extension ViewController {
 
             defaultButton.heightAnchor.constraint(equalToConstant: 50),
             compactButton.heightAnchor.constraint(equalToConstant: 50),
-            customButton.heightAnchor.constraint(equalToConstant: 50)
+            customButton.heightAnchor.constraint(equalToConstant: 50),
+            feedbackButton.heightAnchor.constraint(equalToConstant: 50)
         ])
     }
 }
@@ -145,6 +165,11 @@ private extension ViewController {
         actionSheet.present(from: self, animated: true)
     }
 
+    @objc func showFeedbackDemo() {
+        // 显示悬浮反馈视图
+        feedbackManager.showFloatingFeedback(in: self)
+    }
+
 
 
     func createSampleContentViewController(title: String, color: UIColor) -> UIViewController {
@@ -182,9 +207,6 @@ private extension ViewController {
         return contentVC
     }
 
-
-
-
 }
 
 // MARK: - ActionSheetDelegate
@@ -208,6 +230,31 @@ extension ViewController: ActionSheetDelegate {
 
     func actionSheet(_ actionSheet: ActionSheetPresentable, didChangeHeight height: CGFloat) {
         print("Action sheet height changed to: \(height)")
+    }
+}
+
+// MARK: - FeedbackManagerDelegate
+extension ViewController: FeedbackManagerDelegate {
+
+    func feedbackManager(_ manager: FeedbackManager, didSubmitFeedback feedback: FeedbackData) {
+        print("Feedback submitted:")
+        print("Rating: \(feedback.rating)")
+        print("Comment: \(feedback.comment)")
+        print("Timestamp: \(feedback.timestamp)")
+
+        // 显示提交成功的提示
+        let alert = UIAlertController(
+            title: "反馈提交成功",
+            message: "感谢您的评价！\n评分：\(feedback.rating)星\n评论：\(feedback.comment.isEmpty ? "无" : feedback.comment)",
+            preferredStyle: .alert
+        )
+
+        alert.addAction(UIAlertAction(title: "确定", style: .default))
+        present(alert, animated: true)
+    }
+
+    func feedbackManagerDidCancel(_ manager: FeedbackManager) {
+        print("Feedback cancelled")
     }
 }
 

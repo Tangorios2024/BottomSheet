@@ -70,6 +70,7 @@ class ActionSheetViewController: UIViewController, ActionSheetPresentable {
 
     // MARK: - Source View
     private weak var sourceView: UIView?
+    private var sourceViewFrame: CGRect = .zero
     
     // MARK: - Content View Controller
     private var contentViewController: UIViewController?
@@ -101,6 +102,8 @@ class ActionSheetViewController: UIViewController, ActionSheetPresentable {
         currentHeight = configuration.defaultHeight
         heightConstraint.constant = currentHeight
     }
+
+
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
@@ -127,6 +130,8 @@ extension ActionSheetViewController {
     var velocityThreshold: CGFloat { configuration.velocityThreshold }
     var extendToSafeArea: Bool { configuration.extendToSafeArea }
     var safeAreaBackgroundColor: UIColor? { configuration.safeAreaBackgroundColor }
+    var sourceViewConfiguration: SourceViewConfigurable? { configuration.sourceViewConfiguration }
+    var dismissalViewConfiguration: DismissalViewConfigurable { configuration.dismissalViewConfiguration }
 }
 
 // MARK: - ActionSheetPresentable
@@ -143,8 +148,10 @@ extension ActionSheetViewController {
         viewController.present(self, animated: false) { [weak self] in
             guard let self = self else { return }
 
-            // 如果有sourceView，更新底部约束
-            self.updateBottomConstraintForSourceView()
+            // 如果有sourceView，更新约束以支持从sourceView位置动画
+            if self.sourceView != nil {
+                self.updateBottomConstraintForSourceView()
+            }
 
             if animated {
                 self.animationManager.animatePresentation { _ in
@@ -187,12 +194,12 @@ extension ActionSheetViewController {
         contentViewController?.willMove(toParent: nil)
         contentViewController?.view.removeFromSuperview()
         contentViewController?.removeFromParent()
-        
+
         // 添加新的内容视图控制器
         contentViewController = viewController
         addChild(viewController)
         contentContainerView.addSubview(viewController.view)
-        
+
         viewController.view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             viewController.view.topAnchor.constraint(equalTo: contentContainerView.topAnchor),
@@ -200,7 +207,7 @@ extension ActionSheetViewController {
             viewController.view.trailingAnchor.constraint(equalTo: contentContainerView.trailingAnchor),
             viewController.view.bottomAnchor.constraint(equalTo: contentContainerView.bottomAnchor)
         ])
-        
+
         viewController.didMove(toParent: self)
     }
 }
@@ -316,6 +323,8 @@ private extension ActionSheetViewController {
             heightConstraint: heightConstraint
         )
     }
+
+
     
     @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
         handlePanGesture(gesture)
@@ -341,22 +350,34 @@ private extension ActionSheetViewController {
 
     func updateBottomConstraintForSourceView() {
         guard let sourceView = sourceView,
-              let sourceSuperview = sourceView.superview else { return }
+              let sourceSuperview = sourceView.superview else {
+            // 如果没有sourceView，使用默认的底部约束
+            return
+        }
 
-        // 将sourceView的坐标转换到当前view的坐标系
-        let sourceFrame = sourceSuperview.convert(sourceView.frame, to: view)
+        // 将sourceView的坐标转换到当前view的坐标系并保存
+        sourceViewFrame = sourceSuperview.convert(sourceView.frame, to: view)
 
-        // 移除旧的约束
+        // 移除旧的底部约束
         bottomConstraint.isActive = false
 
-        // 计算新的底部约束值：让sheet的底部位于sourceView的顶部
-        // 这样sheet就会从sourceView上方开始，不覆盖sourceView
-        let newBottomConstant = sourceFrame.minY - view.bounds.height
-        bottomConstraint = contentView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: newBottomConstant)
-        bottomConstraint.isActive = true
+        // 创建一个topConstraint来定位ActionSheet从sourceView位置开始
+        let topConstraint = contentView.topAnchor.constraint(equalTo: view.topAnchor, constant: sourceViewFrame.minY)
+        topConstraint.isActive = true
+        self.topConstraint = topConstraint
 
-        // 更新动画管理器的约束引用
-        animationManager.updateBottomConstraint(bottomConstraint)
+        // 设置初始的小尺寸，模拟从悬浮视图扩展的效果
+        heightConstraint.constant = sourceViewFrame.height
+
+        // 通知动画管理器使用sourceView动画，传递topConstraint和原始frame
+        animationManager.updateConstraintsForSourceView(
+            topConstraint: topConstraint,
+            heightConstraint: heightConstraint,
+            sourceFrame: sourceViewFrame
+        )
+
+        // 立即应用约束变化
+        view.layoutIfNeeded()
     }
 }
 

@@ -38,6 +38,10 @@ struct ActionSheetConfiguration: ActionSheetConfigurable {
     // MARK: - Safe Area Configuration
     let extendToSafeArea: Bool
     let safeAreaBackgroundColor: UIColor?
+
+    // MARK: - View Configuration
+    let sourceViewConfiguration: SourceViewConfigurable?
+    let dismissalViewConfiguration: DismissalViewConfigurable
     
     // MARK: - Initializer
     init(
@@ -58,7 +62,9 @@ struct ActionSheetConfiguration: ActionSheetConfigurable {
         velocityThreshold: CGFloat = 500,
         dismissThreshold: CGFloat = 0.3,
         extendToSafeArea: Bool = true,
-        safeAreaBackgroundColor: UIColor? = nil
+        safeAreaBackgroundColor: UIColor? = nil,
+        sourceViewConfiguration: SourceViewConfigurable? = nil,
+        dismissalViewConfiguration: DismissalViewConfigurable = DefaultDismissalViewConfiguration()
     ) {
         self.defaultHeight = defaultHeight
         
@@ -93,6 +99,8 @@ struct ActionSheetConfiguration: ActionSheetConfigurable {
         self.dismissThreshold = dismissThreshold
         self.extendToSafeArea = extendToSafeArea
         self.safeAreaBackgroundColor = safeAreaBackgroundColor
+        self.sourceViewConfiguration = sourceViewConfiguration
+        self.dismissalViewConfiguration = dismissalViewConfiguration
     }
 }
 
